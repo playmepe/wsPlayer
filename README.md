@@ -1,52 +1,52 @@
-# ![Logo](wsPlayerlogo.svg) wsPlayer
+# ![Logotipo](wsPlayerlogo.svg) wsPlayer
 
-​       wsPlayer是一款专注于WebSocket-fmp4协议的web视频播放器，HTTP/WebSocket-fmp4协议与RTMP、HLS、HTTP-FLV相比，具有播放延时短，HTML5兼容性好等优点；
+wsPlayer es un reproductor de video web que se centra en el protocolo WebSocket-fmp4. En comparación con RTMP, HLS y HTTP-FLV, el protocolo HTTP/WebSocket-fmp4 tiene las ventajas de un retraso de reproducción corto y una buena compatibilidad con HTML5;
 
-见各流媒体协议对比：
-
-
-|    协议名称    | 网络传输协议 | 延时  |        编码类型        |         HTML5支持情况          |
-| :------------: | :----------: | :---: | :--------------------: | :----------------------------: |
-|      RTSP      | TCP/UDP/组播 | 0~3s  |       H264/H265        | 不支持，（RTSP over HTTP除外） |
-|      RTMP      |     TCP      | 0~3s  | H264/H265(CodecID =12) |             不支持             |
-|      HLS       |  HTTP短连接  | 1~10s |       H264/H265        |         video标签支持          |
-|    HTTP-FLV    |  HTTP长连接  | 0~3s  | H264/H265(CodecID =12) |     flv → fmp4 → video标签     |
-|   HTTP-fmp4    |  HTTP长连接  | 0~3s  |       H264/H265        |       video标签原生支持        |
-| WebSocket-FLV  |  WebSocket   | 0~3s  | H264/H265(CodecID =12) |     flv → fmp4 → video标签     |
-| WebSocket-fmp4 |  WebSocket   | 0~3s  |       H264/H265        |     使用MSE，vidoe标签播放     |
-
-备注：浏览器对单个页面的HTTP长连接的并发数限制为6个，这意味着HTTP-FLV、HTTP-fmp4只能同时播放6个视频画面；但浏览器对WebSocket的连接数没有限制；
+Vea la comparación de varios protocolos de medios de transmisión:
 
 
+| Nombre del protocolo | Protocolo de transmisión de red | Retraso | Tipo de codificación | Soporte HTML5 |
+| :----------: | :----------: | :---: | :-------------- -- ----: | :--------------------------: |
+| RTSP | TCP/UDP/Multicast | 0~3s | H264/H265 | No compatible (excepto RTSP sobre HTTP) |
+| RTMP | TCP | 0~3s | H264/H265(CodecID =12) | No compatible |
+| HLS | Conexión corta HTTP | 1~10s | H264/H265 | soporte de etiquetas de vídeo |
+| HTTP-FLV | Conexión HTTP larga | 0~3s | H264/H265(CodecID =12) | flv → fmp4 → etiqueta de video |
+| HTTP-fmp4 | Conexión larga HTTP | 0~3s | H264/H265 | Soporte nativo de etiquetas de vídeo |
+| WebSocket-FLV | WebSocket | 0~3s | H264/H265(CodecID =12) | flv → fmp4 → etiqueta de vídeo |
+| WebSocket-fmp4 | WebSocket | 0~3s | H264/H265 | Usar MSE, reproducción de etiquetas de vídeo |
 
-## 项目依赖
-
-需要使用[mp4box.js](https://github.com/gpac/mp4box.js)来解析fmp4 moov中的codecs；
+Nota: El navegador limita el número de conexiones largas HTTP simultáneas en una sola página a 6, lo que significa que HTTP-FLV y HTTP-fmp4 solo pueden reproducir 6 pantallas de vídeo al mismo tiempo; pero el navegador no tiene límite en el número de Conexiones WebSocket;
 
 
 
-## 快速开始
+## Dependencias del proyecto
 
-推荐使用[ZLMediaKit](https://github.com/ZLMediaKit/ZLMediaKit)作为WebSocket-fmp4协议的后端流媒体服务器
+Debes usar [mp4box.js](https://github.com/gpac/mp4box.js) para analizar los códecs en fmp4 moov;
 
-1. 部署后端流媒体服务器
+
+
+## Inicio rápido
+
+Se recomienda utilizar [ZLMediaKit](https://github.com/ZLMediaKit/ZLMediaKit) como servidor de transmisión backend del protocolo WebSocket-fmp4.
+
+1. Implementar el servidor de transmisión backend
 
 ```shell
 docker pull panjjo/zlmediakit
 docker run -id -p 8080:80 -p 554:554 panjjo/zlmediakit
 ```
 
-2. 使用ffmpeg命令，向ZLMediaKit添加一路RTSP推流
+2. Utilice el comando ffmpeg para agregar una transmisión push RTSP a ZLMediaKit
 ```shell
-ffmpeg -re -stream_loop -1 -i test.mp4 -an -vcodec copy -f rtsp -rtsp_transport tcp rtsp://100.100.154.29/live/test
+fmpeg -re -stream_loop -1 -i test.mp4 -an -vcodec copy -f rtsp -rtsp_transport tcp rtsp://100.100.154.29/live/test
 ```
 
-3. 根据ZLMediaKit的[播放url规则](https://github.com/zlmediakit/ZLMediaKit/wiki/%E6%92%AD%E6%94%BEurl%E8%A7%84%E5%88%99)得知，WebSocket-fmp4协议的URL格式为：
-```shell
+3. De acuerdo con las [reglas de URL de reproducción] de ZLMediaKit (https://github.com/zlmediakit/ZLMediaKit/wiki/%E6%92%AD%E6%94%BEurl%E8%A7%84%E5%88%99) Se aprende que el formato de URL del protocolo WebSocket-fmp4 es:
+```cáscara
 ws://100.100.154.29:8080/live/test.live.mp4
 ```
 
-4. 然后调用播放器代码：
+4. Luego llama al código del jugador:
 
 ```html
 <html>
@@ -66,13 +66,13 @@ ws://100.100.154.29:8080/live/test.live.mp4
 </html>
 ```
 
-## 播放器原理
-​       将WebSocket收到的fmp4 Segment片段`appendBuffer`到`MediaSource`中，此时`video.buffered`会记录当前已经`appendBuffer`的视频时间段，然后将`video.buffered`的起始时间设置给`video.currentTime`，然后浏览器就会从`video.buffered`缓存的视频开始播放
+## Principio del jugador
+Agregue el fragmento de segmento fmp4 `appendBuffer` recibido por WebSocket a `MediaSource`. En este momento, `video.buffered` registrará el período de tiempo de video actual de `appendBuffer` y luego establecerá el tiempo de inicio de `video.buffered`. a `video.currentTime`, entonces el navegador comenzará a reproducir desde el video almacenado en caché en `video.buffered`
 
-## 项目计划
-* v1.0 实现用video标签，调用MSE播放WebSocket-fmp4（H.264）直播流，并把播放器封装为标准的npm组件；
-* v2.0 实现用WebAssembly FFmpeg解码H.265，然后用canvas标签WebGL渲染YUV，从而实现播放WebSocket-fmp4（H.265）直播流，并实现动态切换H.264、H.265这两种播放机制；
-* v3.0 实现视频流SEI信息的callback回调
+## Plan de proyecto
+* v1.0 implementa el uso de la etiqueta de video para llamar a MSE para reproducir la transmisión en vivo de WebSocket-fmp4 (H.264) y encapsula el reproductor como un componente npm estándar;
+* v2.0 implementa el uso de WebAssembly FFmpeg para decodificar H.265 y luego usa la etiqueta de lienzo WebGL para representar YUV, logrando así la reproducción de la transmisión en vivo de WebSocket-fmp4 (H.265) y el cambio dinámico entre H.264 y H.265. .mecanismo;
+* v3.0 implementa devolución de llamada para información SEI de transmisión de video
 
-## 联系方式
-- QQ交流群：群名称：wsPlayer  群号：710185138
+## Información del contacto
+- Grupo de comunicación QQ: Nombre del grupo: wsPlayer Número de grupo: 710185138
